@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>双人专属决策盘 💖</title>
   <style>
-    /* 全局样式 */
     * {
       box-sizing: border-box;
     }
@@ -27,21 +26,12 @@
       border-radius: 24px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       text-align: center;
-      max-width: 380px;
+      max-width: 400px;
       width: 90%;
     }
 
-    h1 {
-      color: #ff4757;
-      margin: 0 0 5px 0;
-      font-size: 22px;
-    }
-    .subtitle {
-      color: #888;
-      font-size: 13px;
-      margin-top: 0;
-      margin-bottom: 20px;
-    }
+    h1 { color: #ff4757; margin: 0 0 5px 0; font-size: 22px; }
+    .subtitle { color: #888; font-size: 13px; margin-top: 0; margin-bottom: 20px; }
 
     /* 模式选择按钮分类 */
     .tab-buttons {
@@ -62,24 +52,21 @@
       transition: all 0.2s;
       flex: 1;
     }
-    .tab-buttons button.active {
-      background: #ff4757;
-      color: white;
-    }
+    .tab-buttons button.active { background: #ff4757; color: white; }
 
     /* 显示结果的格子 */
     .result-box {
       background: #fff0f3;
       border: 2px dashed #ff4757;
       border-radius: 16px;
-      height: 110px;
+      height: 100px;
       display: flex;
       justify-content: center;
       align-items: center;
       font-size: 20px;
       font-weight: bold;
       color: #ff4757;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       padding: 0 15px;
       line-height: 1.4;
     }
@@ -98,19 +85,11 @@
       box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
       transition: transform 0.1s;
     }
-    .primary-btn:active {
-      transform: scale(0.97);
-    }
-    .primary-btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
+    .primary-btn:active { transform: scale(0.97); }
+    .primary-btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
 
-    /* 否决卡功能区 */
-    .veto-section {
-      margin-top: 15px;
-    }
+    /* 否决卡 */
+    .veto-section { margin-top: 15px; }
     .veto-btn {
       background: transparent;
       border: 1px dashed #ffa502;
@@ -120,6 +99,66 @@
       font-size: 12px;
       cursor: pointer;
     }
+
+    /* 动态增删选项管理区 */
+    .manage-section {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px dashed #eee;
+      text-align: left;
+    }
+    .manage-title { font-size: 13px; color: #666; font-weight: bold; margin-bottom: 8px; }
+    .input-group { display: flex; gap: 6px; margin-bottom: 10px; }
+    .input-group input {
+      flex: 1;
+      border: 1px solid #ddd;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+    }
+    .input-group input:focus { border-color: #ff4757; }
+    .input-group button {
+      background: #ff4757;
+      color: white;
+      border: none;
+      padding: 0 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    
+    /* 选项标签容器 */
+    .tags-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 120px;
+      overflow-y: auto;
+      min-height: 30px;
+      align-items: center;
+    }
+    .tag {
+      background: #fff0f3;
+      color: #ff4757;
+      font-size: 12px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid #ffd8e0;
+    }
+    .tag .delete-btn {
+      color: #ff4757;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 2px;
+      font-size: 14px;
+    }
+    .tag .delete-btn:hover { color: #d63031; }
+    .empty-tip { color: #aaa; font-size: 12px; font-style: italic; }
   </style>
 </head>
 <body>
@@ -135,8 +174,8 @@
       <button onclick="switchTab('housework')" id="btn-housework">🧹 谁做家务</button>
     </div>
 
-    <!-- 显示结果 -->
-    <div id="result-box" class="result-box">点击下方按钮开始！</div>
+    <!-- 结果展示 -->
+    <div id="result-box" class="result-box">先在下方添加你的选项吧！</div>
 
     <!-- 抽卡按钮 -->
     <button class="primary-btn" id="start-btn" onclick="startRandom()">🎰 开启魔法抽卡</button>
@@ -147,49 +186,132 @@
         🚫 本周特权否决卡 (剩余 <span id="veto-count">1</span> 次)
       </button>
     </div>
+
+    <!-- 自定义增删选项区 -->
+    <div class="manage-section">
+      <div class="manage-title">➕ 填写你们的专属选项：</div>
+      <div class="input-group">
+        <input type="text" id="new-option-input" placeholder="输入你想加的选项（如：学校后门烤肉）">
+        <button onclick="addOption()">添加</button>
+      </div>
+      <div class="tags-container" id="tags-container"></div>
+    </div>
   </div>
 
   <script>
-    // 1. 数据配置（可以在这里增加你们想吃的或想玩的选项）
-    const database = {
-      food: ["火锅 🍲", "日料 🍣", "韩式烤肉 🥩", "螺蛳粉 🍜", "炸鸡汉堡 🍔", "精致炒菜 🥗", "一起下厨做饭 👩‍🍳", "麻辣烫 🥘"],
-      play: ["去看电影 🎬", "逛公园散步 🌳", "电玩城抓娃娃 🧸", "打羽毛球 🏸", "窝家里看剧 🍿", "逛超市买零食 🛒", "找个咖啡馆发呆 ☕"],
-      housework: ["男朋友洗碗 👨", "女朋友洗碗 👩", "两个人一起洗 👫", "石头剪刀布决定 ✊", "今天免洗，明天再说! 🎉"]
+    // 初始清空所有默认数据！完全由用户自己创建
+    const emptyDatabase = {
+      food: [],
+      play: [],
+      housework: []
     };
+
+    // 读取本地存储，若没有存储则加载纯净空白数据
+    let database = JSON.parse(localStorage.getItem('couple_decision_data')) || emptyDatabase;
 
     let currentTab = 'food';
     let isSpinning = false;
     let vetoCount = 1;
 
-    // 切换标签
+    // 保存到 LocalStorage（换手机或刷新网页，只要不清除浏览器缓存数据都在）
+    function saveData() {
+      localStorage.setItem('couple_decision_data', JSON.stringify(database));
+    }
+
+    // 渲染选项标签
+    function renderTags() {
+      const container = document.getElementById('tags-container');
+      container.innerHTML = '';
+      const options = database[currentTab] || [];
+
+      if (options.length === 0) {
+        container.innerHTML = '<span class="empty-tip">暂无选项，快在上方添加第一个吧 ~</span>';
+        return;
+      }
+
+      options.forEach((item, index) => {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.innerHTML = `
+          <span>${item}</span>
+          <span class="delete-btn" onclick="deleteOption(${index})" title="删除此项">×</span>
+        `;
+        container.appendChild(tag);
+      });
+    }
+
+    // 切换分类
     function switchTab(tab) {
       if (isSpinning) return;
       currentTab = tab;
 
       document.querySelectorAll('.tab-buttons button').forEach(btn => btn.classList.remove('active'));
       document.getElementById(`btn-${tab}`).classList.add('active');
-      document.getElementById('result-box').innerText = "点击下方按钮开始！";
+      
+      const options = database[currentTab] || [];
+      document.getElementById('result-box').innerText = options.length > 0 ? "点击下方按钮开始！" : "先在下方添加你的选项吧！";
+      
+      renderTags();
     }
 
-    // 随机动画与抽取逻辑
+    // 添加新选项
+    function addOption() {
+      const input = document.getElementById('new-option-input');
+      const value = input.value.trim();
+      if (!value) {
+        alert("请输入你想添加的名称哦！");
+        return;
+      }
+
+      if (!database[currentTab]) {
+        database[currentTab] = [];
+      }
+
+      database[currentTab].push(value);
+      saveData();
+      renderTags();
+      input.value = '';
+
+      // 更新展示框提示
+      if (database[currentTab].length === 1) {
+        document.getElementById('result-box').innerText = "点击下方按钮开始！";
+      }
+    }
+
+    // 删除选项（允许删到 0 个）
+    function deleteOption(index) {
+      database[currentTab].splice(index, 1);
+      saveData();
+      renderTags();
+
+      if (database[currentTab].length === 0) {
+        document.getElementById('result-box').innerText = "先在下方添加你的选项吧！";
+      }
+    }
+
+    // 随机抽卡
     function startRandom() {
       if (isSpinning) return;
-      isSpinning = true;
 
       const options = database[currentTab];
+      if (!options || options.length === 0) {
+        alert("⚠️ 当前分类还没有任何选项哦，先在下方添加几个吧！");
+        return;
+      }
+
+      isSpinning = true;
       const resultBox = document.getElementById('result-box');
       const startBtn = document.getElementById('start-btn');
 
       startBtn.disabled = true;
       let count = 0;
 
-      // 定时器实现快速切换动效
       const timer = setInterval(() => {
         const randomIndex = Math.floor(Math.random() * options.length);
         resultBox.innerText = options[randomIndex];
         count++;
 
-        if (count > 22) { // 滚动约 1.8 秒后停止
+        if (count > 22) {
           clearInterval(timer);
           const finalChoice = options[Math.floor(Math.random() * options.length)];
           resultBox.innerText = `🎉 决定就是：\n${finalChoice}`;
@@ -201,6 +323,12 @@
 
     // 否决卡
     function useVeto() {
+      const options = database[currentTab];
+      if (!options || options.length === 0) {
+        alert("⚠️ 当前分类还没有选项，无法重抽哦！");
+        return;
+      }
+      
       if (vetoCount <= 0) {
         alert("⚠️ 本周的否决卡已经用完啦！这次必须听指挥~");
         return;
@@ -212,6 +340,9 @@
       alert("🚫 成功使用否决卡！重新开始抽取！");
       startRandom();
     }
+
+    // 页面启动时初始化
+    renderTags();
   </script>
 </body>
 </html>
