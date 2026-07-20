@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>双人专属决策盘 💖</title>
+  <style>
+    /* 全局样式 */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 20px 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 主卡片容器 */
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 25px 20px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+    }
+
+    h1 {
+      color: #ff4757;
+      margin: 0 0 5px 0;
+      font-size: 22px;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 13px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    /* 模式选择按钮分类 */
+    .tab-buttons {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .tab-buttons button {
+      border: none;
+      background: #f0f0f0;
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+      color: #666;
+      transition: all 0.2s;
+      flex: 1;
+    }
+    .tab-buttons button.active {
+      background: #ff4757;
+      color: white;
+    }
+
+    /* 显示结果的格子 */
+    .result-box {
+      background: #fff0f3;
+      border: 2px dashed #ff4757;
+      border-radius: 16px;
+      height: 110px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: #ff4757;
+      margin-bottom: 20px;
+      padding: 0 15px;
+      line-height: 1.4;
+    }
+
+    /* 抽卡主按钮 */
+    .primary-btn {
+      width: 100%;
+      background: linear-gradient(45deg, #ff4757, #ff6b81);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 17px;
+      font-weight: bold;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+      transition: transform 0.1s;
+    }
+    .primary-btn:active {
+      transform: scale(0.97);
+    }
+    .primary-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* 否决卡功能区 */
+    .veto-section {
+      margin-top: 15px;
+    }
+    .veto-btn {
+      background: transparent;
+      border: 1px dashed #ffa502;
+      color: #e67e22;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>✨ 今天听谁的？</h1>
+    <p class="subtitle">解决选择困难症的情侣专属神器</p>
+
+    <!-- 分类切换 -->
+    <div class="tab-buttons">
+      <button onclick="switchTab('food')" class="active" id="btn-food">🍱 今天吃啥</button>
+      <button onclick="switchTab('play')" id="btn-play">🎡 去哪耍</button>
+      <button onclick="switchTab('housework')" id="btn-housework">🧹 谁做家务</button>
+    </div>
+
+    <!-- 显示结果 -->
+    <div id="result-box" class="result-box">点击下方按钮开始！</div>
+
+    <!-- 抽卡按钮 -->
+    <button class="primary-btn" id="start-btn" onclick="startRandom()">🎰 开启魔法抽卡</button>
+
+    <!-- 否决卡 -->
+    <div class="veto-section">
+      <button class="veto-btn" onclick="useVeto()">
+        🚫 本周特权否决卡 (剩余 <span id="veto-count">1</span> 次)
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 1. 数据配置（可以在这里增加你们想吃的或想玩的选项）
+    const database = {
+      food: ["火锅 🍲", "日料 🍣", "韩式烤肉 🥩", "螺蛳粉 🍜", "炸鸡汉堡 🍔", "精致炒菜 🥗", "一起下厨做饭 👩‍🍳", "麻辣烫 🥘"],
+      play: ["去看电影 🎬", "逛公园散步 🌳", "电玩城抓娃娃 🧸", "打羽毛球 🏸", "窝家里看剧 🍿", "逛超市买零食 🛒", "找个咖啡馆发呆 ☕"],
+      housework: ["男朋友洗碗 👨", "女朋友洗碗 👩", "两个人一起洗 👫", "石头剪刀布决定 ✊", "今天免洗，明天再说! 🎉"]
+    };
+
+    let currentTab = 'food';
+    let isSpinning = false;
+    let vetoCount = 1;
+
+    // 切换标签
+    function switchTab(tab) {
+      if (isSpinning) return;
+      currentTab = tab;
+
+      document.querySelectorAll('.tab-buttons button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`btn-${tab}`).classList.add('active');
+      document.getElementById('result-box').innerText = "点击下方按钮开始！";
+    }
+
+    // 随机动画与抽取逻辑
+    function startRandom() {
+      if (isSpinning) return;
+      isSpinning = true;
+
+      const options = database[currentTab];
+      const resultBox = document.getElementById('result-box');
+      const startBtn = document.getElementById('start-btn');
+
+      startBtn.disabled = true;
+      let count = 0;
+
+      // 定时器实现快速切换动效
+      const timer = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * options.length);
+        resultBox.innerText = options[randomIndex];
+        count++;
+
+        if (count > 22) { // 滚动约 1.8 秒后停止
+          clearInterval(timer);
+          const finalChoice = options[Math.floor(Math.random() * options.length)];
+          resultBox.innerText = `🎉 决定就是：\n${finalChoice}`;
+          isSpinning = false;
+          startBtn.disabled = false;
+        }
+      }, 80);
+    }
+
+    // 否决卡
+    function useVeto() {
+      if (vetoCount <= 0) {
+        alert("⚠️ 本周的否决卡已经用完啦！这次必须听指挥~");
+        return;
+      }
+      if (isSpinning) return;
+
+      vetoCount--;
+      document.getElementById('veto-count').innerText = vetoCount;
+      alert("🚫 成功使用否决卡！重新开始抽取！");
+      startRandom();
+    }
+  </script>
+</body>
+</html>
